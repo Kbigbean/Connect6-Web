@@ -10,7 +10,7 @@ AI = 1
 HUMAN = 2
 BLOCK = 3
 
-DEBUG = True
+DEBUG = False
 
 def process_send(p, s):
   print(s, file=p.stdin)
