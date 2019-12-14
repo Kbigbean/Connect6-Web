@@ -1,0 +1,32 @@
+<html>
+
+<head>
+<style>
+
+ <style type="text/css">
+ 
+   body {width: 100%;}
+   #boardWraaper {text-align: center;}
+ 
+  </style>
+  <script src="https://code.jquery.com/jquery-3.4.1.js"></script>
+</head>
+
+<body>
+  <div id="setting">
+    <input type="range" class="slider1" value="0" min="0" max="1" width="500px"> </input>
+    <p class = "info1">You First</p>
+    <input type="range" class="slider2" value="1" min="1" max="5" width="500px"> </input>
+    <p class = "info2">Level 1 - 컴퓨터는 한 수 앞까지 생각합니다. 연산이 오래 걸리지 않고 거의 바로 착수합니다.</p>
+    <button type="button" class="start"> start </button>
+  </div>
+  <div id="game">
+  	<canvas id="board" width="600" height="600"></canvas>
+   <p class = "status"> 난이도와 선공/후공을 정한 후 "start"를 눌러 게임을 시작하세요. </p>
+  </div>
+
+</body>
+
+<script type="text/javascript" src="js/connect6.js"></script>
+
+</html>

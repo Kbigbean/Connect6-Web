@@ -40,6 +40,7 @@ def printBoard(board):
     print(s)
 
 async def conn(websocket, path):
+  print("connection established..")
   CONNECT6_BINARY = '../cpp-backend/Connect6'
   p = subprocess.Popen(CONNECT6_BINARY, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
   while True:
@@ -87,7 +88,7 @@ async def conn(websocket, path):
         if not (0 <= x <= 18 or 0 <= y <= 18): raise OutOfBoundsError
         if board[x][y] != EMPTY: raise NonEmptyError
         board[x][y] = AI
-        await websocket.send("AI 1 {} {}".format(x,y))
+        await websocket.send("{} {}".format(x,y))
 
       winner = EMPTY
       while True:
@@ -149,29 +150,12 @@ async def conn(websocket, path):
           winner = AI
           break
 
-      #if winner == HUMAN:
-      #  await websocket.send("WIN HUMAN")
-
-      #elif winner == AI:
-      #  await websocket.send("WIN AI")
-
-      #else:
-      #  await websocket.send("WIN NO")
-
-
-
-
-
-
-
-
-
     except Exception as e:
       if DEBUG: print("Error : ", e)
       break # connection closed
 
 
-start_server = websockets.serve(conn, "localhost", 8765)
+start_server = websockets.serve(conn, "0.0.0.0", 8765)
 
 asyncio.get_event_loop().run_until_complete(start_server)
 asyncio.get_event_loop().run_forever()
