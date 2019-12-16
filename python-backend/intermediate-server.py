@@ -6,6 +6,7 @@ import subprocess, sys
 import random
 import threading
 import time
+import sqlite3
 
 EMPTY = 0
 AI = 1
@@ -55,6 +56,7 @@ async def conn(websocket, path):
   CONNECT6_BINARY = '../cpp-backend/Connect6'
   try:
     p = subprocess.Popen(CONNECT6_BINARY, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+    
   except:
     return None
   while True:
@@ -70,6 +72,7 @@ async def conn(websocket, path):
         assert(0) #raise SettingError
       if client_recv_chunk[1] not in ["HUMAN", "AI"]:
         assert(0) #raise WrongFirstPlayerError 
+      level = int(client_recv_chunk[0])
       await asyncio.wait_for(loop.run_in_executor(None, process_send, p, "SETTING " + client_recv_chunk[0]), timeout=TIMEOUT)
       HumanFirst = (client_recv_chunk[1] == "HUMAN")
       binary_recv = await asyncio.wait_for(loop.run_in_executor(None, process_recv, p), timeout=TIMEOUT) # BLOCK OK
@@ -164,6 +167,17 @@ async def conn(websocket, path):
         if isWin(board, AI):
           winner = AI
           break
+      try:
+        sqlconn = sqlite3.connect('sqlite.db')
+        c = sqlconn.cursor()
+        if winner == HUMAN:
+          c.execute("UPDATE statistic SET cnt = cnt + 1 WHERE level={} AND computerwin=0".format(level))
+        elif winner == AI:
+          c.execute("UPDATE statistic SET cnt = cnt + 1 WHERE level={} AND computerwin=1".format(level))
+        sqlconn.commit()
+        sqlconn.close()
+      except:
+        pass
 
     except Exception as e:
       if DEBUG: print("Error : ", e)
