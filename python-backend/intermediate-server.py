@@ -4,6 +4,8 @@ import asyncio
 import websockets
 import subprocess, sys
 import random
+import threading
+import time
 
 EMPTY = 0
 AI = 1
@@ -15,6 +17,10 @@ DEBUG = False
 def process_send(p, s):
   print(s, file=p.stdin)
   p.stdin.flush()
+
+def process_recv(p):
+  return p.stdout.readline().strip()
+
 
 def isWin(board, player):
   dx = [1,1,1,0]
@@ -39,10 +45,15 @@ def printBoard(board):
       else: s += str(board[i][j]) + "  "
     print(s)
 
+def mySleep():
+  time.sleep(5)
+  return 3
 async def conn(websocket, path):
-  print("connection established..")
+  loop = asyncio.get_event_loop()
+  if DEBUG: print("connection established..")
   CONNECT6_BINARY = '../cpp-backend/Connect6'
   p = subprocess.Popen(CONNECT6_BINARY, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+
   while True:
     board = [[EMPTY]*19 for i in range(19)]
     HumanFirst = True
@@ -51,17 +62,17 @@ async def conn(websocket, path):
       if DEBUG: print(client_recv)
       client_recv_chunk = client_recv.split()
       if len(client_recv_chunk) != 2:
-        raise SettingError
+        assert(0) #raise SettingError
       if client_recv_chunk[0] not in ['1','2','3','4','5']:
-        raise SettingError
+        assert(0) #raise SettingError
       if client_recv_chunk[1] not in ["HUMAN", "AI"]:
-        raise WrongFirstPlayerError 
-      process_send(p, "SETTING " + client_recv_chunk[0])
+        assert(0) #raise WrongFirstPlayerError 
+      await loop.run_in_executor(None, process_send, p, "SETTING " + client_recv_chunk[0])
       HumanFirst = (client_recv_chunk[1] == "HUMAN")
-      binary_recv = p.stdout.readline().strip() # SETTING OK
+      binary_recv = await loop.run_in_executor(None, process_recv, p) # BLOCK OK
       if DEBUG: print(binary_recv)
       if binary_recv != "SETTING OK":
-        raise SettingError
+        assert(0) #raise SettingError
       cnt = 4
       while cnt: # put 4 blocks
         i = random.randint(0, 18)
@@ -70,51 +81,51 @@ async def conn(websocket, path):
         cnt -= 1
         board[i][j] = BLOCK
         block_msg = "BLOCK {} {}".format(i,j)
-        process_send(p, block_msg)
-        binary_recv = p.stdout.readline().strip() # BLOCK OK
+        await loop.run_in_executor(None, process_send, p, block_msg)
+        binary_recv = await loop.run_in_executor(None, process_recv, p) # BLOCK OK
         if DEBUG: print(binary_recv)
         if binary_recv != "BLOCK OK":
-          raise BlockError
+          assert(0) #raise BlockError
         await websocket.send(block_msg)
 
       if not HumanFirst:
         if DEBUG: print("MYMOVE 1")
-        process_send(p, "MYMOVE 1");
-        binary_recv = p.stdout.readline().strip() # MYMOVE OK 1 x y
+        await loop.run_in_executor(None, process_send, p, "MYMOVE 1")
+        binary_recv = await loop.run_in_executor(None, process_recv, p)
         if DEBUG: print(binary_recv)
         _, _, _, x, y = binary_recv.split()
         x = int(x)
         y = int(y)
-        if not (0 <= x <= 18 or 0 <= y <= 18): raise OutOfBoundsError
-        if board[x][y] != EMPTY: raise NonEmptyError
+        if not (0 <= x <= 18 or 0 <= y <= 18): assert(0) #raise OutOfBoundsError
+        if board[x][y] != EMPTY: assert(0) #raise NonEmptyError
         board[x][y] = AI
         await websocket.send("{} {}".format(x,y))
 
       winner = EMPTY
       while True:
         ########## HUMAN MOVE ################
-        if DEBUG: printBoard(board)
+        #if DEBUG: printBoard(board)
         # 5 7  / 1 6 3 7
         client_recv = await websocket.recv()
         if DEBUG: print(client_recv)
         client_recv_chunk = client_recv.split()
         if len(client_recv_chunk) == 2:
           if not HumanFirst:
-            raise WrongHumanMoveNumberError
+            assert(0) # raise WrongHumanMoveNumberError
           HumanFirst = False
         elif len(client_recv_chunk) == 4:
           if HumanFirst:
-            raise WrongHumanMoveNumberError
+            assert(0) #raise WrongHumanMoveNumberError
         else:
-          raise WrongHumanMoveNumberError
+          assert(0) #raise WrongHumanMoveNumberError
         for i in range(len(client_recv_chunk)//2):
           x = int(client_recv_chunk[2*i])
           y = int(client_recv_chunk[2*i+1])
-          if not (0 <= x <= 18 or 0 <= y <= 18): raise OutOfBoundsError
-          if board[x][y] != EMPTY: raise NonEmptyError
+          if not (0 <= x <= 18 or 0 <= y <= 18): assert(0) #raise OutOfBoundsError
+          if board[x][y] != EMPTY: assert(0) #raise NonEmptyError
           board[x][y] = HUMAN
 
-        if DEBUG: printBoard(board)
+        #if DEBUG: printBoard(board)
         if isWin(board, HUMAN):
           winner = HUMAN
           break
@@ -123,29 +134,30 @@ async def conn(websocket, path):
         binary_send_chunk = client_recv_chunk[:]
         binary_send = "OPMOVE {} ".format(len(client_recv_chunk)//2) + client_recv
         if DEBUG: print(binary_send)
-        process_send(p, binary_send)
-        binary_recv = p.stdout.readline().strip() # OPMOVE OK
+        await loop.run_in_executor(None, process_send, p, binary_send)
+        binary_recv = await loop.run_in_executor(None, process_recv, p)
+        binary_recv = binary_recv.strip() # BLOCK OK
         if DEBUG: print(binary_recv)
-        if binary_recv != "OPMOVE OK": raise OpMoveError
+        if binary_recv != "OPMOVE OK": assert(0) #raise OpMoveError
         if DEBUG: print("MYMOVE 2")
-        process_send(p, "MYMOVE 2")
-        binary_recv =  p.stdout.readline().strip() # MYMOVE OK 2 x0 y0 x1 y1
+        await loop.run_in_executor(None, process_send, p, "MYMOVE 2")
+        binary_recv = await loop.run_in_executor(None, process_recv, p)
         if DEBUG: print(binary_recv)
         binary_recv_chunk = binary_recv.split()
         if binary_recv_chunk[0] != "MYMOVE" or binary_recv_chunk[1] != "OK" or binary_recv_chunk[2] != "2" or len(binary_recv_chunk) != 7:
-          raise OpMoveError
+          assert(0) #raise OpMoveError
         for i in range(2):
           x = int(binary_recv_chunk[3+2*i])
           y = int(binary_recv_chunk[4+2*i])
-          if not (0 <= x <= 18 or 0 <= y <= 18): raise OutOfBoundsError
-          if board[x][y] != EMPTY: raise NonEmptyError
+          if not (0 <= x <= 18 or 0 <= y <= 18): assert(0) #raise OutOfBoundsError
+          if board[x][y] != EMPTY: assert(0) #raise NonEmptyError
           board[x][y] = AI
 
         client_send = ' '.join(binary_recv_chunk[3:7]) # x0 y0 x1 y1
         await websocket.send(client_send)
 
 
-        if DEBUG: printBoard(board)
+        #if DEBUG: printBoard(board)
         if isWin(board, AI):
           winner = AI
           break

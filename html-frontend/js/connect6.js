@@ -9,6 +9,7 @@ var gamestart = false;
 var isfirst = false;
 var cnt = 0;
 var sendmove = "";
+var mytotmove = 0;
 var websocket = new WebSocket("ws://localhost:8765");
 var boardArray = new Array(19); 
 for (var i = 0; i < 19; i++) {
@@ -27,12 +28,12 @@ updateBoard();
 c.addEventListener('mousemove', moveEvent);
 c.addEventListener('mousedown', downEvent);
 
-$(".slider1").val(0);
-$(".slider2").val(1);
+$("#slider1").val(0);
+$("#slider2").val(1);
 
 
-$(".slider1").on("input change", function(){
-  if($(".slider1").val() == 0){
+$("#slider1").on("input change", function(){
+  if($("#slider1").val() == 0){
     $(".info1").text("You First");
     turn = 1;
   }
@@ -42,16 +43,16 @@ $(".slider1").on("input change", function(){
   }
 });
 
-$(".slider2").on("input change", function(){
-    if($(".slider2").val() == 1)
+$("#slider2").on("input change", function(){
+    if($("#slider2").val() == 1)
       $(".info2").text("Level 1 - 컴퓨터는 한 수 앞까지 생각합니다. 연산이 오래 걸리지 않고 거의 바로 착수합니다.");
-    if($(".slider2").val() == 2)
+    if($("#slider2").val() == 2)
       $(".info2").text("Level 2 - 컴퓨터는 세 수 앞까지 생각합니다. 연산이 오래 걸리지 않고 거의 바로 착수합니다.");
-    if($(".slider2").val() == 3)
-      $(".info2").text("Level 3 - 컴퓨터는 여섯 수 앞까지 생각합니다. 컴퓨터는 각 수를 평균적으로 2초, 최대 6초까지 생각합니다.");
-    if($(".slider2").val() == 4)
+    if($("#slider2").val() == 3)
+      $(".info2").text("Level 3 - 컴퓨터는 여섯 수 앞까지 생각합니다. 컴퓨터는 각 수를 평균적으로 2-4초, 최대 6초까지 생각합니다.");
+    if($("#slider2").val() == 4)
       $(".info2").text("Level 4 - 컴퓨터는 최대 여덟 수 앞까지 생각합니다. 컴퓨터는 각 수를 최대 8초까지 생각합니다.");
-    if($(".slider2").val() == 5)
+    if($("#slider2").val() == 5)
       $(".info2").text("Level 5 - 컴퓨터는 최대 열 수 앞까지 생각합니다. 컴퓨터는 각 수를 최대 10초까지 생각합니다.");  
 });
 
@@ -104,12 +105,12 @@ function downEvent(evt){
       if(sended){
         updateBoard();
         if(checkwin(1)){
-          $(".status").text("축하합니다. 당신의 승리입니다.");
+          $("#status").val("축하합니다. 당신의 승리입니다.");
           sendmove = "";
           clearVariables();
         }
         else{
-          $(".status").text("컴퓨터의 턴을 기다리는 중입니다.");
+          $("#status").val("컴퓨터의 턴을 기다리는 중입니다.");
           cnt = 0;
           sendmove = "";
           turn = 2;
@@ -123,29 +124,27 @@ function downEvent(evt){
   }
 }
 
-$('.start').click(function(){
+$('#start').click(function(){
   websocket.onmessage = function(evt){
     recvdata(evt)
   };
-  $('.slider1').attr('disabled', true);
-  $('.slider2').attr('disabled', true);
-  $('.start').attr('disabled', true);
-  var setting = $(".slider2").val() + " ";
+  $('#slider1').attr('disabled', true);
+  $('#slider2').attr('disabled', true);
+  $('#start').attr('disabled', true);
+  var setting = $("#slider2").val() + " ";
   if(turn == 1){
     setting += "HUMAN";
     isfirst = true;
-    $(".status").text("당신의 턴입니다.");
+    $("#status").val("당신의 턴입니다.");
   }
   else{
     setting += "AI";
     isfirst = false;
-    $(".status").text("컴퓨터의 턴을 기다리는 중입니다.");
+    $("#status").val("컴퓨터의 턴을 기다리는 중입니다.");
   }
   websocket.send(setting);
   gamestart = true;  
 });
-
-
 
 function clearVariables(){
   for (var i = 0; i < 19; i++) {
@@ -154,16 +153,19 @@ function clearVariables(){
       boardArray[i][j] = 0;
     }
   }
-  $(".slider1").val(0);  
-  $(".slider2").val(1);
-  $('.slider1').attr('disabled', false);
-  $('.slider2').attr('disabled', false);
-  $('.start').attr('disabled', false);
+  $("#slider1").val(0);  
+  $("#slider2").val(1);
+  $('#slider1').attr('disabled', false);
+  $('#slider2').attr('disabled', false);
+  $('#start').attr('disabled', false);
+  $(".info1").text("You First");
+  $(".info2").text("Level 1 - 컴퓨터는 한 수 앞까지 생각합니다. 연산이 오래 걸리지 않고 거의 바로 착수합니다.");
   gamestart = false;
   turn = 1;
   cnt = 0;
-
+  mytotmove = 0;
 }
+
 function updateBoard(){
   // board fill color
   ctx.lineWidth = 1;
@@ -204,8 +206,8 @@ function updateBoard(){
     for (j = 0; j < 19; j++) {
       if (boardArray[i][j] == 1) {
         ctx.beginPath();
-        if (i == recentx0 && j == recenty0) {ctx.strokeStyle="#0000ff"; ctx.lineWidth=3;}
-        else if(i == recentx1 && j == recenty1) {ctx.strokeStyle="#0000ff"; ctx.lineWidth=3;}
+        if (i == recentx0 && j == recenty0) {ctx.strokeStyle="#4aa8d8"; ctx.lineWidth=3;}
+        else if(i == recentx1 && j == recenty1) {ctx.strokeStyle="#4aa8d8"; ctx.lineWidth=3;}
         else {ctx.strokeStyle="#000000";   ctx.lineWidth = 1;}
         ctx.fillStyle="#000000";
         ctx.arc(blank + i * 32, blank + j * 32, radius, 0, 2*Math.PI);
@@ -213,8 +215,8 @@ function updateBoard(){
         ctx.stroke();
       } else if (boardArray[i][j] == 2){
         ctx.beginPath();
-        if(i == recentx0 && j == recenty0) {ctx.strokeStyle="#0000ff";  ctx.lineWidth=3;}
-        else if(i == recentx1 && j == recenty1) {ctx.strokeStyle="#0000ff";  ctx.lineWidth=3;}
+        if(i == recentx0 && j == recenty0) {ctx.strokeStyle="#000077";  ctx.lineWidth=3;}
+        else if(i == recentx1 && j == recenty1) {ctx.strokeStyle="#000077";  ctx.lineWidth=3;}
         else {ctx.strokeStyle="#ffffff"; ctx.lineWidth = 1;}
         ctx.fillStyle="#ffffff";
         ctx.arc(blank + i * 32, blank + j * 32, radius, 0, 2*Math.PI);
@@ -263,21 +265,23 @@ function recvdata(evt){
       recenty0 = y0;
       recentx1 = x1;
       recenty1 = y1;
+      mytotmove += 2;
     }
+    updateBoard();
     if(checkwin(2)){
-      $(".status").text("컴퓨터의 승리입니다.");
-      updateBoard();
+      $("#status").val("컴퓨터의 승리입니다.");      
       clearVariables();
     }
+    else if(mytotmove >= 170){ // 판을 얼추 다 채웠을 경우
+      $("#status").val("무승부입니다.");
+      clearVariables();
+    }    
     else{
       turn = 1;
-      $(".status").text("당신의 턴입니다.");
-      updateBoard();
+      $("#status").val("당신의 턴입니다.");
     }
   }
 }
-
-
 
 ////////////////////////////////
 
@@ -295,7 +299,26 @@ function checkwin(player){
             break;
           }
         }        
-        if(iswin) return true;
+        if(iswin){
+          for(k = 0; k < 6; k++){
+            ctx.beginPath();
+            var nx = i + k * dx[dir];
+            var ny = j + k * dy[dir];
+            if(player == 1){
+              ctx.fillStyle="#000000";
+              ctx.strokeStyle="#4aa8d8";
+            }
+            else{
+              ctx.fillStyle="#FFFFFF";
+              ctx.strokeStyle="#000077";
+            }
+            ctx.lineWidth = 3;            
+            ctx.arc(blank + nx * 32, blank + ny * 32, radius, 0, 2*Math.PI);
+            ctx.fill();
+            ctx.stroke();
+          }
+          return true;
+        }
       }
     }
   }
@@ -323,10 +346,6 @@ function getMouseRoundPos(xPos, yPos){
     y: resultY
   };
 }
-
-/*
-
-*/
 
 function drawNotClicked(xPos, yPos){
   resultPos = getMouseRoundPos(xPos, yPos);

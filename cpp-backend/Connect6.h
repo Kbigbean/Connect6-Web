@@ -48,7 +48,7 @@ const ull INVALID_SCORE = 0x3f3f3f3f3f3f3f3f;
 extern int MAX_DEPTH;
 extern bool DEBUG;
 const int MAX_POS_CANDIDATE = 30;
-const double SCORE_FACTOR = 1.5;
+const double SCORE_FACTOR = 1.8;
 const int BOARD_SZ = 19;
 class Node {
 public:
@@ -89,6 +89,7 @@ public:
   MOVES Con6Begin2();
   int GetForcedMove(MOVES opMoves, int player, MOVES ForcedMove[]);
   void GetSingleBestPosition(int player, POSITION BestPosition[], ull BestScore[]);
+  void GetStartingBestPosition(int player, POSITION BestPosition[], ull BestScore[]);
   void GetBestMove(int player, MOVES BestMove[], ull BestScore[]);
   MOVES getArbitraryMoves(int player);
 

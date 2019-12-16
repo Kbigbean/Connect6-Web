@@ -19,7 +19,7 @@ void myturn(int x[], int y[], int cnt) {
       BestPos[i] = INVALID_POS;
       BestScore[i] = INVALID_SCORE;
     }
-    Tree->GetSingleBestPosition(BLACK, BestPos, BestScore);
+    Tree->GetStartingBestPosition(BLACK, BestPos, BestScore);
     int child_num = 0;
     for (int i = 0; i < MAX_POS_CANDIDATE; i++) {
       if (BestPos[i] == INVALID_POS) break;

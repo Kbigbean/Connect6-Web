@@ -234,6 +234,51 @@ void MinimaxTree::moveRoot(MOVES _opMove) { // 현재 root을 value로 옮김. v
 
 // 최대 N개의 BestPosition을 반환할 것이다.
 // BestPosition에는 INVALID_SCORE가 담겨서 넘어와야 함
+void MinimaxTree::GetStartingBestPosition(int player, POSITION BestPosition[], ull BestScore[]) {
+  int len = 0;
+  int poslist[BOARD_SZ * BOARD_SZ];
+  for(int i = 0; i < BOARD_SZ*BOARD_SZ; i++) poslist[i] = i;
+  sort(poslist, poslist+BOARD_SZ*BOARD_SZ,
+    [](int i1, int i2) -> bool
+    {
+      return abs(posX(i1)-(BOARD_SZ/2))+abs(posY(i1)-(BOARD_SZ/2)) < abs(posX(i2)-(BOARD_SZ/2))+abs(posY(i2)-(BOARD_SZ/2));
+    }
+  ); // 중간에 가까운 것 먼저 보게 리스트를 설정
+  for (int i = 0; i < BOARD_SZ * BOARD_SZ; i++) {
+    int x = posX(poslist[i]);
+    int y = posY(poslist[i]);
+    if (myBoard[x][y] != EMPTY) continue;
+    ull val = eval1(poslist[i], player);
+    if (len == 0) {
+      BestScore[len] = val;
+      BestPosition[len++] = poslist[i];
+      continue;
+    }
+    int convert_score = score2cmp_delta(val);
+    if (convert_score <= score2cmp_delta(BestScore[len - 1])) {
+      if (len == MAX_POS_CANDIDATE) continue;
+      BestScore[len] = val;
+      BestPosition[len++] = poslist[i];
+      continue;
+    }
+    int idx = len - 1;
+    while (idx >= 0 and convert_score > score2cmp_delta(BestScore[idx])) {
+      if (idx != MAX_POS_CANDIDATE - 1) {
+        BestScore[idx + 1] = BestScore[idx];
+        BestPosition[idx + 1] = BestPosition[idx];
+      }
+      idx--;
+    }
+    BestScore[idx + 1] = val;
+    BestPosition[idx + 1] = poslist[i];
+  }
+}
+
+
+
+
+// 최대 N개의 BestPosition을 반환할 것이다.
+// BestPosition에는 INVALID_SCORE가 담겨서 넘어와야 함
 void MinimaxTree::GetSingleBestPosition(int player, POSITION BestPosition[], ull BestScore[]) {
   int len = 0;
   for (int i = 0; i < BOARD_SZ; i++) {
@@ -272,21 +317,88 @@ void MinimaxTree::GetSingleBestPosition(int player, POSITION BestPosition[], ull
 // ex : 000000010 00000005 이면 내 점수 10점 증가, 상대 점수 5점 감소
 ull MinimaxTree::eval1(POSITION pt, int player) {
   bool markBoard[BOARD_SZ][BOARD_SZ] = { 0, };
-  int factor[6] = { 0, 10, 396, 1205, 2500, 2500 }; // 4, 5개는 어차피 Threat에서 count 될 것임
+  int factor[6] = { 0, 10, 396, 1205, 0, 0 }; // 4, 5개는 어차피 Threat에서 count 될 것임
   int opponent = 3 ^ player;
   int myScore = 0;
   int oppoScore = 0;
-  myBoard[posX(pt)][posY(pt)] = player; // Threat의 수를 구하는 것 때문에 일단 착수시켜 둠
+  
   int dx[4] = { 1,0,1,1 };
   int dy[4] = { 0,1,1,-1 };
+  for(int dir = 0; dir < 4; dir++){
+    bool init = false;
+    int pStone = 0;
+    int opStone = 0;
+    int blockStone = 0;
+    int markStone = 0; // empty와 똑같으나 이게 1 이상이면 Threat으로 쳐지지는 않음
+    int curX = posX(pt) - 11 * dx[dir];
+    int curY = posY(pt) - 11 * dy[dir];
+    for(int i = 0; i < 23; i++){
+      curX += dx[dir]; curY += dy[dir];
+      if (OOB(curX, curY) || OOB(curX + 5 * dx[dir], curY + 5 * dy[dir])) continue;
+      if (!init) {
+        init = true;
+        int nX = curX - dx[dir];
+        int nY = curY - dy[dir];
+        for (int j = 0; j < 6; j++) {
+          nX += dx[dir];
+          nY += dy[dir];
+          // empty이긴한데 mark가 놓여있을 경우
+          if (markBoard[nX][nY])
+            markStone++;
+          else if (myBoard[nX][nY] == player)
+            pStone++;
+          else if (myBoard[nX][nY] == opponent)
+            opStone++;
+          else if (myBoard[nX][nY] == BLOCK)
+            blockStone++;
+        }
+      }
+      else {
+        int nX = curX - dx[dir];
+        int nY = curY - dy[dir];
+        if (markBoard[nX][nY])
+          markStone--;
+        else if (myBoard[nX][nY] == player)
+          pStone--;
+        else if (myBoard[nX][nY] == opponent)
+          opStone--;
+        else if (myBoard[nX][nY] == BLOCK)
+          blockStone--;
+        nX = curX + 5 * dx[dir];
+        nY = curY + 5 * dy[dir];
+        if (markBoard[nX][nY])
+          markStone++;        
+        else if (myBoard[nX][nY] == player)
+          pStone++;
+        else if (myBoard[nX][nY] == opponent)
+          opStone++;
+        else if (myBoard[nX][nY] == BLOCK)
+          blockStone++;
+      }
+      if(pStone >= 4 && markStone == 0 && opStone == 0 && blockStone == 0){
+        int nX = curX - dx[dir];
+        int nY = curY - dy[dir];
+        for (int i = 0; i < 6; i++) {
+          nX += dx[dir];
+          nY += dy[dir];
+          // 빈칸이고 해당칸에 mark가 놓여있지 않다면
+          if (myBoard[nX][nY] == EMPTY && !markBoard[nX][nY]) {
+            markBoard[nX][nY] = true;
+            markStone++;
+          }
+        }
+      }
+    }
+  }
   for (int dir = 0; dir < 4; dir++) {
     bool init = false;
     int pStone = 0;
     int opStone = 0;
     int blockStone = 0;
     int markStone = 0; // empty와 똑같으나 이게 1 이상이면 Threat으로 쳐지지는 않음
-    int curX = posX(pt) - 5 * dx[dir];
-    int curY = posY(pt) - 5 * dy[dir];
+    myBoard[posX(pt)][posY(pt)] = player; // Threat의 수를 구하는 것 때문에 일단 착수시켜 둠
+    int curX = posX(pt) - 6 * dx[dir];
+    int curY = posY(pt) - 6 * dy[dir];
     for (int i = 0; i < 6; i++) {
       curX += dx[dir];
       curY += dy[dir];
@@ -425,7 +537,7 @@ void MinimaxTree::GetBestMove(int player, MOVES BestMove[], ull BestScore[]) {
 // ex : 000000010 00000005 이면 내 점수 10점 증가, 상대 점수 5점 감소
 // threat은 건드리지 않음.
 ull MinimaxTree::modified_eval1(POSITION pt, int player) {
-  int factor[6] = { 0, 10, 396, 1205, 2500, 2500 };
+  int factor[6] = { 0, 10, 396, 1205, 0, 0 };
   int opponent = 3 ^ player;
   int myScore = 0;
   int oppoScore = 0;
