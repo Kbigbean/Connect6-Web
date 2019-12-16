@@ -10,7 +10,8 @@ var isfirst = false;
 var cnt = 0;
 var sendmove = "";
 var mytotmove = 0;
-var websocket = new WebSocket("ws://localhost:8765");
+var websocket = new WebSocket("ws://35.225.22.214:8765");
+//var websocket = new WebSocket("ws://localhost:8765");
 var boardArray = new Array(19); 
 for (var i = 0; i < 19; i++) {
     boardArray[i] = new Array(19);
@@ -49,9 +50,9 @@ $("#slider2").on("input change", function(){
     if($("#slider2").val() == 2)
       $(".info2").text("Level 2 - 컴퓨터는 세 수 앞까지 생각합니다. 연산이 오래 걸리지 않고 거의 바로 착수합니다.");
     if($("#slider2").val() == 3)
-      $(".info2").text("Level 3 - 컴퓨터는 여섯 수 앞까지 생각합니다. 컴퓨터는 각 수를 평균적으로 2-4초, 최대 6초까지 생각합니다.");
+      $(".info2").text("Level 3 - 컴퓨터는 최대 여섯 수 앞까지 생각합니다. 컴퓨터는 각 수를 최대 4초까지 생각합니다.");
     if($("#slider2").val() == 4)
-      $(".info2").text("Level 4 - 컴퓨터는 최대 여덟 수 앞까지 생각합니다. 컴퓨터는 각 수를 최대 8초까지 생각합니다.");
+      $(".info2").text("Level 4 - 컴퓨터는 최대 여덟 수 앞까지 생각합니다. 컴퓨터는 각 수를 최대 6초까지 생각합니다.");
     if($("#slider2").val() == 5)
       $(".info2").text("Level 5 - 컴퓨터는 최대 열 수 앞까지 생각합니다. 컴퓨터는 각 수를 최대 10초까지 생각합니다.");  
 });

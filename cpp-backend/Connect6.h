@@ -48,7 +48,7 @@ const ull INVALID_SCORE = 0x3f3f3f3f3f3f3f3f;
 extern int MAX_DEPTH;
 extern bool DEBUG;
 const int MAX_POS_CANDIDATE = 30;
-const double SCORE_FACTOR = 1.8;
+const double SCORE_FACTOR = 1.5;
 const int BOARD_SZ = 19;
 class Node {
 public:
