@@ -13,6 +13,7 @@ HUMAN = 2
 BLOCK = 3
 
 DEBUG = False
+TIMEOUT = 600
 
 def process_send(p, s):
   print(s, file=p.stdin)
@@ -52,13 +53,15 @@ async def conn(websocket, path):
   loop = asyncio.get_event_loop()
   if DEBUG: print("connection established..")
   CONNECT6_BINARY = '../cpp-backend/Connect6'
-  p = subprocess.Popen(CONNECT6_BINARY, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
-
+  try:
+    p = subprocess.Popen(CONNECT6_BINARY, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+  except:
+    return None
   while True:
     board = [[EMPTY]*19 for i in range(19)]
     HumanFirst = True
     try:
-      client_recv = await websocket.recv() # level AI/HUMAN
+      client_recv = await asyncio.wait_for(websocket.recv(), timeout=TIMEOUT) # level AI/HUMAN
       if DEBUG: print(client_recv)
       client_recv_chunk = client_recv.split()
       if len(client_recv_chunk) != 2:
@@ -67,9 +70,9 @@ async def conn(websocket, path):
         assert(0) #raise SettingError
       if client_recv_chunk[1] not in ["HUMAN", "AI"]:
         assert(0) #raise WrongFirstPlayerError 
-      await loop.run_in_executor(None, process_send, p, "SETTING " + client_recv_chunk[0])
+      await asyncio.wait_for(loop.run_in_executor(None, process_send, p, "SETTING " + client_recv_chunk[0]), timeout=TIMEOUT)
       HumanFirst = (client_recv_chunk[1] == "HUMAN")
-      binary_recv = await loop.run_in_executor(None, process_recv, p) # BLOCK OK
+      binary_recv = await asyncio.wait_for(loop.run_in_executor(None, process_recv, p), timeout=TIMEOUT) # BLOCK OK
       if DEBUG: print(binary_recv)
       if binary_recv != "SETTING OK":
         assert(0) #raise SettingError
@@ -81,17 +84,17 @@ async def conn(websocket, path):
         cnt -= 1
         board[i][j] = BLOCK
         block_msg = "BLOCK {} {}".format(i,j)
-        await loop.run_in_executor(None, process_send, p, block_msg)
-        binary_recv = await loop.run_in_executor(None, process_recv, p) # BLOCK OK
+        await asyncio.wait_for(loop.run_in_executor(None, process_send, p, block_msg), timeout=TIMEOUT)
+        binary_recv = await asyncio.wait_for(loop.run_in_executor(None, process_recv, p), timeout=TIMEOUT) # BLOCK OK
         if DEBUG: print(binary_recv)
         if binary_recv != "BLOCK OK":
           assert(0) #raise BlockError
-        await websocket.send(block_msg)
+        await asyncio.wait_for(websocket.send(block_msg), timeout=TIMEOUT)
 
       if not HumanFirst:
         if DEBUG: print("MYMOVE 1")
-        await loop.run_in_executor(None, process_send, p, "MYMOVE 1")
-        binary_recv = await loop.run_in_executor(None, process_recv, p)
+        await asyncio.wait_for(loop.run_in_executor(None, process_send, p, "MYMOVE 1"), timeout=TIMEOUT)
+        binary_recv = await asyncio.wait_for(loop.run_in_executor(None, process_recv, p), timeout=TIMEOUT)
         if DEBUG: print(binary_recv)
         _, _, _, x, y = binary_recv.split()
         x = int(x)
@@ -99,14 +102,14 @@ async def conn(websocket, path):
         if not (0 <= x <= 18 or 0 <= y <= 18): assert(0) #raise OutOfBoundsError
         if board[x][y] != EMPTY: assert(0) #raise NonEmptyError
         board[x][y] = AI
-        await websocket.send("{} {}".format(x,y))
+        await asyncio.wait_for(websocket.send("{} {}".format(x,y)), timeout=TIMEOUT)
 
       winner = EMPTY
       while True:
         ########## HUMAN MOVE ################
         #if DEBUG: printBoard(board)
         # 5 7  / 1 6 3 7
-        client_recv = await websocket.recv()
+        client_recv = await asyncio.wait_for(websocket.recv(), timeout=TIMEOUT)
         if DEBUG: print(client_recv)
         client_recv_chunk = client_recv.split()
         if len(client_recv_chunk) == 2:
@@ -134,14 +137,14 @@ async def conn(websocket, path):
         binary_send_chunk = client_recv_chunk[:]
         binary_send = "OPMOVE {} ".format(len(client_recv_chunk)//2) + client_recv
         if DEBUG: print(binary_send)
-        await loop.run_in_executor(None, process_send, p, binary_send)
-        binary_recv = await loop.run_in_executor(None, process_recv, p)
+        await asyncio.wait_for(loop.run_in_executor(None, process_send, p, binary_send), timeout=TIMEOUT)
+        binary_recv = await asyncio.wait_for(loop.run_in_executor(None, process_recv, p), timeout=TIMEOUT)
         binary_recv = binary_recv.strip() # BLOCK OK
         if DEBUG: print(binary_recv)
         if binary_recv != "OPMOVE OK": assert(0) #raise OpMoveError
         if DEBUG: print("MYMOVE 2")
-        await loop.run_in_executor(None, process_send, p, "MYMOVE 2")
-        binary_recv = await loop.run_in_executor(None, process_recv, p)
+        await asyncio.wait_for(loop.run_in_executor(None, process_send, p, "MYMOVE 2"), timeout=TIMEOUT)
+        binary_recv = await asyncio.wait_for(loop.run_in_executor(None, process_recv, p), timeout=TIMEOUT)
         if DEBUG: print(binary_recv)
         binary_recv_chunk = binary_recv.split()
         if binary_recv_chunk[0] != "MYMOVE" or binary_recv_chunk[1] != "OK" or binary_recv_chunk[2] != "2" or len(binary_recv_chunk) != 7:
@@ -154,7 +157,7 @@ async def conn(websocket, path):
           board[x][y] = AI
 
         client_send = ' '.join(binary_recv_chunk[3:7]) # x0 y0 x1 y1
-        await websocket.send(client_send)
+        await asyncio.wait_for(websocket.send(client_send), timeout=TIMEOUT)
 
 
         #if DEBUG: printBoard(board)
@@ -165,7 +168,10 @@ async def conn(websocket, path):
     except Exception as e:
       if DEBUG: print("Error : ", e)
       break # connection closed
-
+  try:
+    p.kill()
+  except:
+    pass
 
 start_server = websockets.serve(conn, "0.0.0.0", 8765)
 
