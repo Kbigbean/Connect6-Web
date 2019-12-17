@@ -55,8 +55,7 @@ async def conn(websocket, path):
   if DEBUG: print("connection established..")
   CONNECT6_BINARY = '../cpp-backend/Connect6'
   try:
-    p = subprocess.Popen(CONNECT6_BINARY, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
-    
+    p = subprocess.Popen(CONNECT6_BINARY, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)    
   except:
     return None
   while True:
@@ -168,14 +167,15 @@ async def conn(websocket, path):
           winner = AI
           break
       try:
-        sqlconn = sqlite3.connect('sqlite.db')
-        c = sqlconn.cursor()
-        if winner == HUMAN:
-          c.execute("UPDATE statistic SET cnt = cnt + 1 WHERE level={} AND cwin=0".format(level))
-        elif winner == AI:
-          c.execute("UPDATE statistic SET cnt = cnt + 1 WHERE level={} AND cwin=1".format(level))
-        sqlconn.commit()
-        sqlconn.close()
+        if winner != EMPTY:
+          sqlconn = sqlite3.connect('sqlite.db')
+          c = sqlconn.cursor()
+          if winner == HUMAN:
+            c.execute("UPDATE statistic SET cnt = cnt + 1 WHERE level={} AND computerwin=0".format(level))
+          elif winner == AI:
+            c.execute("UPDATE statistic SET cnt = cnt + 1 WHERE level={} AND computerwin=1".format(level))
+          sqlconn.commit()
+          sqlconn.close()
       except:
         pass
 
@@ -183,7 +183,9 @@ async def conn(websocket, path):
       if DEBUG: print("Error : ", e)
       break # connection closed
   try:
-    p.kill()
+    await asyncio.wait_for(loop.run_in_executor(None, process_send, p, "QUIT"), timeout=TIMEOUT) # QUIT
+    await asyncio.wait_for(loop.run_in_executor(None, process_recv, p), timeout=TIMEOUT) # OK
+    p.wait()
   except:
     pass
 
