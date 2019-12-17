@@ -171,9 +171,9 @@ async def conn(websocket, path):
           sqlconn = sqlite3.connect('sqlite.db')
           c = sqlconn.cursor()
           if winner == HUMAN:
-            c.execute("UPDATE statistic SET cnt = cnt + 1 WHERE level={} AND computerwin=0".format(level))
+            c.execute("UPDATE statistic SET cnt = cnt + 1 WHERE level={} AND cwin=0".format(level))
           elif winner == AI:
-            c.execute("UPDATE statistic SET cnt = cnt + 1 WHERE level={} AND computerwin=1".format(level))
+            c.execute("UPDATE statistic SET cnt = cnt + 1 WHERE level={} AND cwin=1".format(level))
           sqlconn.commit()
           sqlconn.close()
       except:
